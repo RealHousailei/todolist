@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
 import './App.css';
+import { api } from './lib/api';
 
 interface todoItemProps {
   todo: Todo;
@@ -21,6 +23,7 @@ interface inputProps {
 }
 
 interface Todo {
+  id: number;
   name: string;
   completed: boolean;
 }
@@ -28,8 +31,8 @@ interface Todo {
 function App() {
   return (
     <div className="App">
-      <Title></Title>
-      <TodoBox></TodoBox>
+      <Title />
+      <TodoBox />
     </div>
   );
 }
@@ -43,20 +46,73 @@ function TodoBox() {
 
   const [status, setStatus] = useState('all');
 
+  useEffect(() => {
+    console.log(1);
+    api
+      .get('/api/todos')
+      .then((res) => {
+        if (res.data.success) {
+          setTodos(res.data.data?.todos || []);
+        } else {
+          window.alert(res.data.message || 'undefined error');
+        }
+      })
+      .catch((err) => {
+        window.alert(err.message);
+      });
+  }, []);
+
   const handleClick = (i: number) => {
     const newTodos = [...todos];
     newTodos[i] = { ...newTodos[i], completed: !newTodos[i].completed };
-    setTodos(newTodos);
+    api
+      .post('/api/todo/status', {
+        id: newTodos[i].id,
+        completed: newTodos[i].completed,
+      })
+      .then((res) => {
+        console.log(res);
+        if (!res.data.success) {
+          window.alert(res.data.message || 'undefined error');
+        } else {
+          setTodos(newTodos);
+        }
+      })
+      .catch((err) => {
+        window.alert(err.message);
+      });
   };
 
   const clearCompleted = () => {
     const newTodos = todos.filter((todo) => !todo.completed);
-    setTodos(newTodos);
+    api
+      .delete('/api/todo/completed')
+      .then((res) => {
+        if (!res.data.success) {
+          window.alert(res.data.message || 'undefined error');
+        } else {
+          setTodos(newTodos);
+        }
+      })
+      .catch((err) => {
+        window.alert(err.message);
+      });
   };
 
   const addTodo = (value: string) => {
-    const newTodos = [...todos, { name: value, completed: false }];
-    setTodos(newTodos);
+    api
+      .post('/api/todo', { name: value })
+      .then((res) => {
+        console.log(res);
+        if (!res.data.success) {
+          window.alert(res.data.message || 'undefined error');
+        } else {
+          setTodos([res.data.data.todo, ...todos]);
+        }
+      })
+      .catch((err) => {
+        window.alert(err.message);
+      });
   };
 
   return (
